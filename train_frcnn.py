@@ -19,12 +19,13 @@ from keras_frcnn import losses as losses
 import keras_frcnn.roi_helpers as roi_helpers
 from keras.utils import generic_utils
 from keras.callbacks import TensorBoard
+# from tensorflow.python.keras.callbacks_v1 import TensorBoard
 
 
-# tensorboard 로그 작성 함수
+# tensorboard
 def write_log(callback, names, logs, batch_no):
     for name, value in zip(names, logs):
-        summary = tf.Summary()
+        summary = tf.compat.v1.Summary()
         summary_value = summary.value.add()
         summary_value.simple_value = value
         summary_value.tag = name
@@ -122,17 +123,17 @@ random.shuffle(all_imgs)
 
 num_imgs = len(all_imgs)
 
-train_imgs = [s for s in all_imgs if s['imageset'] == 'trainval']
-test_imgs = [s for s in all_imgs if s['imageset'] == 'test']
+train_imgs = [s for s in all_imgs if s['imageset'] == 'train']
+test_imgs = [s for s in all_imgs if s['imageset'] == 'val']
 
 print('Num train samples {}'.format(len(train_imgs)))
 print('Num test samples {}'.format(len(test_imgs)))
 
 # groundtruth anchor 데이터 가져오기
-data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='train')
-data_gen_test = data_generators.get_anchor_gt(test_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='test')
+data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, "tf", mode='train')
+data_gen_test = data_generators.get_anchor_gt(test_imgs, classes_count, C, nn.get_img_output_length, "tf", mode='test')
 
-if K.image_dim_ordering() == 'th':
+if tf.keras.backend.image_data_format() == 'channels_first':
     input_shape_img = (3, None, None)
 else:
     input_shape_img = (None, None, 3)
@@ -184,6 +185,7 @@ if not os.path.isdir(log_path):
 callback = TensorBoard(log_path)
 callback.set_model(model_all)
 
+
 epoch_length = 1000
 num_epochs = int(options.num_epochs)
 iter_num = 0
@@ -220,11 +222,12 @@ for epoch_num in range(num_epochs):
         X, Y, img_data = next(data_gen_train)
 
         loss_rpn = model_rpn.train_on_batch(X, Y)
-        write_log(callback, ['rpn_cls_loss', 'rpn_reg_loss'], loss_rpn, train_step)
+        # write_log(callback, ['rpn_cls_loss', 'rpn_reg_loss'], loss_rpn, train_step)
+        print(['rpn_cls_loss', 'rpn_reg_loss'], loss_rpn, train_step)
 
         P_rpn = model_rpn.predict_on_batch(X)
 
-        R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, K.image_dim_ordering(), use_regr=True, overlap_thresh=0.7, max_boxes=300)
+        R = roi_helpers.rpn_to_roi(P_rpn[0], P_rpn[1], C, "tf", use_regr=True, overlap_thresh=0.7, max_boxes=300)
         # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
         X2, Y1, Y2, IouS = roi_helpers.calc_iou(R, img_data, C, class_mapping)
 
@@ -280,7 +283,8 @@ for epoch_num in range(num_epochs):
                 sel_samples = random.choice(pos_samples)
 
         loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]], [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
-        write_log(callback, ['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
+        # write_log(callback, ['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
+        print(['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
         train_step += 1
 
         losses[iter_num, 0] = loss_rpn[1]
@@ -318,8 +322,14 @@ for epoch_num in range(num_epochs):
             iter_num = 0
             start_time = time.time()
 
-            write_log(callback,
-                      ['Elapsed_time', 'mean_overlapping_bboxes', 'mean_rpn_cls_loss', 'mean_rpn_reg_loss',
+            # write_log(callback,
+            #           ['Elapsed_time', 'mean_overlapping_bboxes', 'mean_rpn_cls_loss', 'mean_rpn_reg_loss',
+            #            'mean_detection_cls_loss', 'mean_detection_reg_loss', 'mean_detection_acc', 'total_loss'],
+            #           [time.time() - start_time, mean_overlapping_bboxes, loss_rpn_cls, loss_rpn_regr,
+            #            loss_class_cls, loss_class_regr, class_acc, curr_loss],
+            #           epoch_num)
+
+            print(['Elapsed_time', 'mean_overlapping_bboxes', 'mean_rpn_cls_loss', 'mean_rpn_reg_loss',
                        'mean_detection_cls_loss', 'mean_detection_reg_loss', 'mean_detection_acc', 'total_loss'],
                       [time.time() - start_time, mean_overlapping_bboxes, loss_rpn_cls, loss_rpn_regr,
                        loss_class_cls, loss_class_regr, class_acc, curr_loss],
