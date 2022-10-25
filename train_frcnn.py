@@ -284,7 +284,7 @@ for epoch_num in range(num_epochs):
 
         loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]], [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
         # write_log(callback, ['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
-        print(['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
+        # print(['detection_cls_loss', 'detection_reg_loss', 'detection_acc'], loss_class, train_step)
         train_step += 1
 
         losses[iter_num, 0] = loss_rpn[1]
@@ -329,11 +329,11 @@ for epoch_num in range(num_epochs):
             #            loss_class_cls, loss_class_regr, class_acc, curr_loss],
             #           epoch_num)
 
-            print(['Elapsed_time', 'mean_overlapping_bboxes', 'mean_rpn_cls_loss', 'mean_rpn_reg_loss',
-                       'mean_detection_cls_loss', 'mean_detection_reg_loss', 'mean_detection_acc', 'total_loss'],
-                      [time.time() - start_time, mean_overlapping_bboxes, loss_rpn_cls, loss_rpn_regr,
-                       loss_class_cls, loss_class_regr, class_acc, curr_loss],
-                      epoch_num)
+            # print(['Elapsed_time', 'mean_overlapping_bboxes', 'mean_rpn_cls_loss', 'mean_rpn_reg_loss',
+            #            'mean_detection_cls_loss', 'mean_detection_reg_loss', 'mean_detection_acc', 'total_loss'],
+            #           [time.time() - start_time, mean_overlapping_bboxes, loss_rpn_cls, loss_rpn_regr,
+            #            loss_class_cls, loss_class_regr, class_acc, curr_loss],
+            #           epoch_num)
 
             if curr_loss < best_loss:
                 if C.verbose:
