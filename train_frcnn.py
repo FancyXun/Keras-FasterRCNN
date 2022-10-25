@@ -97,10 +97,10 @@ else:
     # set the path to weights based on backend and model
     C.base_net_weights = nn.get_weight_path()
 
-# parser에서 이미지, 클래스, 클래스 맵핑 정보 가져오기
+# parser
 all_imgs, classes_count, class_mapping = get_data(options.train_path)
 
-# bg 클래스 추가
+# bg
 if 'bg' not in classes_count:
     classes_count['bg'] = 0
     class_mapping['bg'] = len(class_mapping)
@@ -129,7 +129,7 @@ test_imgs = [s for s in all_imgs if s['imageset'] == 'val']
 print('Num train samples {}'.format(len(train_imgs)))
 print('Num test samples {}'.format(len(test_imgs)))
 
-# groundtruth anchor 데이터 가져오기
+# groundtruth anchor
 data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, "tf", mode='train')
 data_gen_test = data_generators.get_anchor_gt(test_imgs, classes_count, C, nn.get_img_output_length, "tf", mode='test')
 
@@ -138,19 +138,19 @@ if tf.keras.backend.image_data_format() == 'channels_first':
 else:
     input_shape_img = (None, None, 3)
 
-# input placeholder 정의
+# input placeholder
 img_input = Input(shape=input_shape_img)
 roi_input = Input(shape=(None, 4))
 
-# base network(feature extractor) 정의 (resnet, VGG, Inception, Inception Resnet V2, etc)
+# base network(feature extractor) (resnet, VGG, Inception, Inception Resnet V2, etc)
 shared_layers = nn.nn_base(img_input, trainable=True)
 
 # define the RPN, built on the base layers
-# RPN 정의
+# RPN
 num_anchors = len(C.anchor_box_scales) * len(C.anchor_box_ratios)
 rpn = nn.rpn(shared_layers, num_anchors)
 
-# detection network 정의
+# detection network
 classifier = nn.classifier(shared_layers, roi_input, C.num_rois, nb_classes=len(classes_count), trainable=True)
 
 model_rpn = Model(img_input, rpn[:2])
@@ -176,12 +176,12 @@ model_rpn.compile(optimizer=optimizer, loss=[losses.rpn_loss_cls(num_anchors), l
 model_classifier.compile(optimizer=optimizer_classifier, loss=[losses.class_loss_cls, losses.class_loss_regr(len(classes_count)-1)], metrics={'dense_class_{}'.format(len(classes_count)): 'accuracy'})
 model_all.compile(optimizer='sgd', loss='mae')
 
-# Tensorboard log폴더 생성
+# Tensorboard log
 log_path = './logs'
 if not os.path.isdir(log_path):
     os.mkdir(log_path)
 
-# Tensorboard log모델 연결
+# Tensorboard log
 callback = TensorBoard(log_path)
 callback.set_model(model_all)
 
@@ -205,12 +205,12 @@ print('Starting training')
 
 for epoch_num in range(num_epochs):
 
-    progbar = generic_utils.Progbar(epoch_length)   # keras progress bar 사용
+    progbar = generic_utils.Progbar(epoch_length)   # keras progress bar
     print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 
     while True:
         # try:
-        # mean overlapping bboxes 출력
+        # mean overlapping bboxes
         if len(rpn_accuracy_rpn_monitor) == epoch_length and C.verbose:
             mean_overlapping_bboxes = float(sum(rpn_accuracy_rpn_monitor))/len(rpn_accuracy_rpn_monitor)
             rpn_accuracy_rpn_monitor = []
@@ -218,7 +218,7 @@ for epoch_num in range(num_epochs):
             if mean_overlapping_bboxes == 0:
                 print('RPN is not producing bounding boxes that overlap the ground truth boxes. Check RPN settings or keep training.')
 
-        # data generator에서 X, Y, image 가져오기
+        # data generator X, Y, image
         X, Y, img_data = next(data_gen_train)
 
         loss_rpn = model_rpn.train_on_batch(X, Y)

@@ -9,7 +9,7 @@ def get_data(input_path):
     classes_count = {}
     class_mapping = {}
 
-    # parsing 정보 확인 Flag
+    # parsing Flag
     visualise = False
 
     # pascal voc directory + 2012
@@ -21,7 +21,7 @@ def get_data(input_path):
         annot_path = os.path.join(data_path, 'Annotations')
         imgs_path = os.path.join(data_path, 'JPEGImages')
 
-        #ImageSets/Main directory의 4개 파일(train, val, trainval, test)
+        #ImageSets/Main directory (train, val, trainval, test)
         imgsets_path_trainval = os.path.join(data_path, 'ImageSets', 'Main', 'trainval.txt')
         imgsets_path_train = os.path.join(data_path, 'ImageSets', 'Main', 'train.txt')
         imgsets_path_val = os.path.join(data_path, 'ImageSets', 'Main', 'val.txt')
@@ -50,7 +50,7 @@ def get_data(input_path):
                 for line in f:
                     test_files.append(line.strip() + '.jpg')
 
-        # 이미지셋 txt 파일 read 예외처리
+        #  txt  read
         # try:
         #     with open(imgsets_path_trainval) as f:
         #         for line in f:
@@ -69,7 +69,7 @@ def get_data(input_path):
         #     else:
         #         print(e)
 
-        # annotation 파일 read
+        # annotation  read
         annots = [os.path.join(annot_path, s) for s in os.listdir(annot_path)]
         idx = 0
 
@@ -130,9 +130,9 @@ def get_data(input_path):
                 else:
                     classes_count[class_name] += 1
 
-                # class mapping 정보 추가
+                # class mapping
                 if class_name not in class_mapping:
-                    class_mapping[class_name] = len(class_mapping)  # 마지막 번호로 추가
+                    class_mapping[class_name] = len(class_mapping)  #
 
                 obj_bbox = element_obj.find('bndbox')
                 x1 = int(round(float(obj_bbox.find('xmin').text)))
