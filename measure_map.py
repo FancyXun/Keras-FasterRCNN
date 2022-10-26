@@ -1,18 +1,18 @@
-import os
+import pickle
+import sys
+import time
+from optparse import OptionParser
+
 import cv2
 import numpy as np
-import sys
-import pickle
-from optparse import OptionParser
-import time
-from keras_frcnn import config
-import keras_frcnn.resnet as nn
 from keras import backend as K
 from keras.layers import Input
 from keras.models import Model
-from keras_frcnn import roi_helpers
-from keras_frcnn import data_generators
 from sklearn.metrics import average_precision_score
+
+import keras_frcnn.resnet as nn
+from keras_frcnn import data_generators
+from keras_frcnn import roi_helpers
 
 
 def get_map(pred, gt, f):
@@ -42,10 +42,10 @@ def get_map(pred, gt, f):
 
         for gt_box in gt:
             gt_class = gt_box['class']
-            gt_x1 = gt_box['x1']/fx
-            gt_x2 = gt_box['x2']/fx
-            gt_y1 = gt_box['y1']/fy
-            gt_y2 = gt_box['y2']/fy
+            gt_x1 = gt_box['x1'] / fx
+            gt_x2 = gt_box['x2'] / fx
+            gt_y1 = gt_box['y1'] / fy
+            gt_y2 = gt_box['y2'] / fy
             gt_seen = gt_box['bbox_matched']
             if gt_class != pred_class:
                 continue
@@ -70,9 +70,10 @@ def get_map(pred, gt, f):
             T[gt_box['class']].append(1)
             P[gt_box['class']].append(0)
 
-    #import pdb
-    #pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     return T, P
+
 
 sys.setrecursionlimit(40000)
 
@@ -80,18 +81,17 @@ parser = OptionParser()
 
 parser.add_option("-p", "--path", dest="test_path", help="Path to test data.")
 parser.add_option("-n", "--num_rois", dest="num_rois",
-                help="Number of ROIs per iteration. Higher means more memory use.", default=32)
+                  help="Number of ROIs per iteration. Higher means more memory use.", default=32)
 parser.add_option("--config_filename", dest="config_filename", help=
-                "Location to read the metadata related to the training (generated when training).",
-                default="config.pickle")
+"Location to read the metadata related to the training (generated when training).",
+                  default="config.pickle")
 parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of simple or pascal_voc",
-                default="pascal_voc"),
+                  default="pascal_voc"),
 
 (options, args) = parser.parse_args()
 
-if not options.test_path:   # if filename is not given
+if not options.test_path:  # if filename is not given
     parser.error('Error: path to test data must be specified. Pass --path to command line')
-
 
 if options.parser == 'pascal_voc':
     from keras_frcnn.pascal_voc_parser import get_data
@@ -159,11 +159,10 @@ else:
     input_shape_img = (None, None, 3)
     input_shape_features = (None, None, 1024)
 
-
 # input placeholder 정의
 img_input = Input(shape=input_shape_img)
 roi_input = Input(shape=(C.num_rois, 4))
-feature_map_input = Input(shape=input_shape_features) #??
+feature_map_input = Input(shape=input_shape_features)  # ??
 
 # define the base network (resnet here, can be VGG, Inception, etc)
 shared_layers = nn.nn_base(img_input, trainable=True)
@@ -187,7 +186,6 @@ model_classifier.compile(optimizer='sgd', loss='mse')
 
 all_imgs, _, _ = get_data(options.test_path)
 test_imgs = [s for s in all_imgs if s['imageset'] == 'test']
-
 
 T = {}
 P = {}
@@ -269,7 +267,6 @@ for idx, img_data in enumerate(test_imgs):
             det = {'x1': x1, 'x2': x2, 'y1': y1, 'y2': y2, 'class': key, 'prob': new_probs[jk]}
             all_dets.append(det)
 
-
     print('Elapsed time = {}'.format(time.time() - st))
     t, p = get_map(all_dets, img_data['bboxes'], (fx, fy))
     for key in t.keys():
@@ -284,5 +281,5 @@ for idx, img_data in enumerate(test_imgs):
         print('{} AP: {}'.format(key, ap))
         all_aps.append(ap)
     print('mAP = {}'.format(np.mean(np.array(all_aps))))
-    #print(T)
-    #print(P)
+    # print(T)
+    # print(P)

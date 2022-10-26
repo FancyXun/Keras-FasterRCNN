@@ -13,17 +13,19 @@ is also different (same as Inception V3).
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os
-from keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D, BatchNormalization, GlobalAveragePooling2D, AveragePooling2D, TimeDistributed, Concatenate, Lambda
 
 from keras import backend as K
+from keras.layers import Input, Dense, Activation, Flatten, Conv2D, MaxPooling2D, BatchNormalization, \
+    GlobalAveragePooling2D, AveragePooling2D, TimeDistributed, Concatenate, Lambda
 
 from keras_frcnn.RoiPoolingConv import RoiPoolingConv
-from keras_frcnn.FixedBatchNormalization import FixedBatchNormalization
+import tensorflow as tf
 
 
 def get_weight_path():
-    return os.path.join('keras_frcnn', 'weights','inception_resnet_v2.h5')
+    return os.path.join('keras_frcnn', 'weights', 'inception_resnet_v2.h5')
 
 
 def get_img_output_length(width, height):
@@ -197,9 +199,9 @@ def inception_resnet_block(x, scale, block_type, block_idx, activation='relu'):
                    name=block_name + '_conv')
 
     x = Lambda(lambda inputs, scale: inputs[0] + inputs[1] * scale,
-                 output_shape=K.int_shape(x)[1:],
-                 arguments={'scale': scale},
-                 name=block_name)([x, up])
+               output_shape=K.int_shape(x)[1:],
+               arguments={'scale': scale},
+               name=block_name)([x, up])
     if activation is not None:
         x = Activation(activation, name=block_name + '_ac')(x)
     return x
@@ -288,9 +290,8 @@ def inception_resnet_block_td(x, scale, block_type, block_idx, activation='relu'
 
 
 def nn_base(input_tensor=None, trainable=False):
-
     # Determine proper input shape
-    if K.image_dim_ordering() == 'th':
+    if tf.keras.backend.image_data_format() == 'channels_first':
         input_shape = (3, None, None)
     else:
         input_shape = (None, None, 3)
@@ -303,7 +304,7 @@ def nn_base(input_tensor=None, trainable=False):
         else:
             img_input = input_tensor
 
-    if K.image_dim_ordering() == 'tf':
+    if tf.keras.backend.image_data_format() == 'channels_last':
         bn_axis = 3
     else:
         bn_axis = 1
@@ -357,7 +358,6 @@ def nn_base(input_tensor=None, trainable=False):
 
 
 def classifier_layers(x, input_shape, trainable=False):
-
     # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
     # (hence a smaller stride in the region that follows the ROI pool)
 
@@ -396,8 +396,8 @@ def classifier_layers(x, input_shape, trainable=False):
 
 
 def rpn(base_layers, num_anchors):
-
-    x = Conv2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(base_layers)
+    x = Conv2D(512, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(
+        base_layers)
 
     x_class = Conv2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)
     x_regr = Conv2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')(x)
@@ -406,7 +406,6 @@ def rpn(base_layers, num_anchors):
 
 
 def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False):
-
     # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
 
     if K.backend() == 'tensorflow':
@@ -422,8 +421,9 @@ def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False
 
     out = TimeDistributed(Flatten())(out)
 
-    out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'), name='dense_class_{}'.format(nb_classes))(out)
+    out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'),
+                                name='dense_class_{}'.format(nb_classes))(out)
     # note: no regression target for bg class
-    out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
+    out_regr = TimeDistributed(Dense(4 * (nb_classes - 1), activation='linear', kernel_initializer='zero'),
+                               name='dense_regress_{}'.format(nb_classes))(out)
     return [out_class, out_regr]
-

@@ -1,11 +1,13 @@
 from __future__ import absolute_import
-import numpy as np
-import cv2
-import random
-import copy
-from . import data_augment
-import threading
+
 import itertools
+import random
+import threading
+
+import cv2
+import numpy as np
+
+from . import data_augment
 
 
 def union(au, bu, area_intersection):
@@ -22,7 +24,7 @@ def intersection(ai, bi):
     h = min(ai[3], bi[3]) - y
     if w < 0 or h < 0:
         return 0
-    return w*h
+    return w * h
 
 
 # Intersection of Union
@@ -80,7 +82,6 @@ class SampleSelector:
 
 
 def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_length_calc_function):
-
     downscale = float(C.rpn_stride)
     anchor_sizes = C.anchor_box_scales
     anchor_ratios = C.anchor_box_ratios
@@ -148,13 +149,14 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
                     for bbox_num in range(num_bboxes):
 
                         # get IOU of the current GT box and the current anchor box
-                        curr_iou = iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]], [x1_anc, y1_anc, x2_anc, y2_anc])
+                        curr_iou = iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]],
+                                       [x1_anc, y1_anc, x2_anc, y2_anc])
                         # calculate the regression targets if they will be needed
                         if curr_iou > best_iou_for_bbox[bbox_num] or curr_iou > C.rpn_max_overlap:
                             cx = (gta[bbox_num, 0] + gta[bbox_num, 1]) / 2.0
                             cy = (gta[bbox_num, 2] + gta[bbox_num, 3]) / 2.0
-                            cxa = (x1_anc + x2_anc)/2.0
-                            cya = (y1_anc + y2_anc)/2.0
+                            cxa = (x1_anc + x2_anc) / 2.0
+                            cya = (y1_anc + y2_anc) / 2.0
 
                             tx = (cx - cxa) / (x2_anc - x1_anc)
                             ty = (cy - cya) / (y2_anc - y1_anc)
@@ -167,8 +169,8 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
                             if curr_iou > best_iou_for_bbox[bbox_num]:
                                 best_anchor_for_bbox[bbox_num] = [jy, ix, anchor_ratio_idx, anchor_size_idx]
                                 best_iou_for_bbox[bbox_num] = curr_iou
-                                best_x_for_bbox[bbox_num,:] = [x1_anc, x2_anc, y1_anc, y2_anc]
-                                best_dx_for_bbox[bbox_num,:] = [tx, ty, tw, th]
+                                best_x_for_bbox[bbox_num, :] = [x1_anc, x2_anc, y1_anc, y2_anc]
+                                best_dx_for_bbox[bbox_num, :] = [tx, ty, tw, th]
 
                             # we set the anchor to positive if the IOU is >0.7 (it does not matter if there was another better box, it just indicates overlap)
                             if curr_iou > C.rpn_max_overlap:
@@ -196,7 +198,7 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
                         y_is_box_valid[jy, ix, anchor_ratio_idx + n_anchratios * anchor_size_idx] = 1
                         y_rpn_overlap[jy, ix, anchor_ratio_idx + n_anchratios * anchor_size_idx] = 1
                         start = 4 * (anchor_ratio_idx + n_anchratios * anchor_size_idx)
-                        y_rpn_regr[jy, ix, start:start+4] = best_regr
+                        y_rpn_regr[jy, ix, start:start + 4] = best_regr
 
     # we ensure that every bbox has at least one positive RPN region
 
@@ -206,14 +208,16 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
             if best_anchor_for_bbox[idx, 0] == -1:
                 continue
             y_is_box_valid[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios *
-                best_anchor_for_bbox[idx,3]] = 1
+                best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], best_anchor_for_bbox[
+                    idx, 2] + n_anchratios *
+                best_anchor_for_bbox[idx, 3]] = 1
             y_rpn_overlap[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios *
-                best_anchor_for_bbox[idx,3]] = 1
-            start = 4 * (best_anchor_for_bbox[idx,2] + n_anchratios * best_anchor_for_bbox[idx,3])
+                best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], best_anchor_for_bbox[
+                    idx, 2] + n_anchratios *
+                best_anchor_for_bbox[idx, 3]] = 1
+            start = 4 * (best_anchor_for_bbox[idx, 2] + n_anchratios * best_anchor_for_bbox[idx, 3])
             y_rpn_regr[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], start:start+4] = best_dx_for_bbox[idx, :]
+            best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], start:start + 4] = best_dx_for_bbox[idx, :]
 
     y_rpn_overlap = np.transpose(y_rpn_overlap, (2, 0, 1))
     y_rpn_overlap = np.expand_dims(y_rpn_overlap, axis=0)
@@ -233,10 +237,10 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
     # regions. We also limit it to 256 regions.
     num_regions = 256
 
-    if len(pos_locs[0]) > num_regions/2:
-        val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions/2)
+    if len(pos_locs[0]) > num_regions / 2:
+        val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions / 2)
         y_is_box_valid[0, pos_locs[0][val_locs], pos_locs[1][val_locs], pos_locs[2][val_locs]] = 0
-        num_pos = num_regions/2
+        num_pos = num_regions / 2
 
     if len(neg_locs[0]) + num_pos > num_regions:
         val_locs = random.sample(range(len(neg_locs[0])), len(neg_locs[0]) - num_pos)
@@ -252,6 +256,7 @@ class threadsafe_iter:
     """Takes an iterator/generator and makes it thread-safe by
     serializing call to the `next` method of given iterator/generator.
     """
+
     def __init__(self, it):
         self.it = it
         self.lock = threading.Lock()
@@ -267,13 +272,14 @@ class threadsafe_iter:
 def threadsafe_generator(f):
     """A decorator that takes a generator function and makes it thread-safe.
     """
+
     def g(*a, **kw):
         return threadsafe_iter(f(*a, **kw))
+
     return g
 
 
 def get_anchor_gt(all_img_data, class_count, C, img_length_calc_function, backend, mode='train'):
-
     # The following line is not useful with Python 3.5, it is kept for the legacy
     # all_img_data = sorted(all_img_data)
 
@@ -310,7 +316,8 @@ def get_anchor_gt(all_img_data, class_count, C, img_length_calc_function, backen
 
                 try:
                     # rpn ground-truth cls, reg
-                    y_rpn_cls, y_rpn_regr = calc_rpn(C, img_data_aug, width, height, resized_width, resized_height, img_length_calc_function)
+                    y_rpn_cls, y_rpn_regr = calc_rpn(C, img_data_aug, width, height, resized_width, resized_height,
+                                                     img_length_calc_function)
                 except:
                     continue
 
@@ -326,7 +333,7 @@ def get_anchor_gt(all_img_data, class_count, C, img_length_calc_function, backen
                 x_img = np.transpose(x_img, (2, 0, 1))
                 x_img = np.expand_dims(x_img, axis=0)
 
-                y_rpn_regr[:, y_rpn_regr.shape[1]//2:, :, :] *= C.std_scaling
+                y_rpn_regr[:, y_rpn_regr.shape[1] // 2:, :, :] *= C.std_scaling
 
                 if backend == 'tf':
                     x_img = np.transpose(x_img, (0, 2, 3, 1))

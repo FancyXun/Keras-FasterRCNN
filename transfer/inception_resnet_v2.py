@@ -1,5 +1,6 @@
+from keras import layers, backend
 from keras import utils
-from keras import *
+
 
 def conv2d_bn(x,
               filters,
@@ -206,7 +207,6 @@ def InceptionResnetV2_model(input_shape, include_top=False, input_tensor=None, w
 
     # Final convolution block: 8 x 8 x 1536
     x = conv2d_bn(x, 1536, 1, name='conv_7b')
-
 
     if include_top:
         # Classification block

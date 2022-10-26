@@ -1,6 +1,7 @@
 import os
-import cv2
 import xml.etree.ElementTree as ET
+
+import cv2
 from tqdm import tqdm
 
 
@@ -21,7 +22,7 @@ def get_data(input_path):
         annot_path = os.path.join(data_path, 'Annotations')
         imgs_path = os.path.join(data_path, 'JPEGImages')
 
-        #ImageSets/Main directory (train, val, trainval, test)
+        # ImageSets/Main directory (train, val, trainval, test)
         imgsets_path_trainval = os.path.join(data_path, 'ImageSets', 'Main', 'trainval.txt')
         imgsets_path_train = os.path.join(data_path, 'ImageSets', 'Main', 'train.txt')
         imgsets_path_val = os.path.join(data_path, 'ImageSets', 'Main', 'val.txt')

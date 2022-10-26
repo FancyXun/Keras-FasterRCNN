@@ -51,7 +51,7 @@ class RoiPoolingConv(Layer):
 
     def call(self, x, mask=None):
 
-        assert(len(x) == 2)
+        assert (len(x) == 2)
 
         img = x[0]
         rois = x[1]
@@ -72,7 +72,7 @@ class RoiPoolingConv(Layer):
 
             num_pool_regions = self.pool_size
 
-            #NOTE: the RoiPooling implementation differs between theano and tensorflow due to the lack of a resize op
+            # NOTE: the RoiPooling implementation differs between theano and tensorflow due to the lack of a resize op
             # in theano. The theano implementation is much less efficient and leads to long compile times
 
             if self.dim_ordering == 'th':
@@ -88,8 +88,8 @@ class RoiPoolingConv(Layer):
                         y1 = K.cast(y1, 'int32')
                         y2 = K.cast(y2, 'int32')
 
-                        x2 = x1 + K.maximum(1,x2-x1)
-                        y2 = y1 + K.maximum(1,y2-y1)
+                        x2 = x1 + K.maximum(1, x2 - x1)
+                        y2 = y1 + K.maximum(1, y2 - y1)
 
                         new_shape = [input_shape[0], input_shape[1],
                                      y2 - y1, x2 - x1]
@@ -105,7 +105,7 @@ class RoiPoolingConv(Layer):
                 w = K.cast(w, 'int32')
                 h = K.cast(h, 'int32')
 
-                rs = tf.image.resize(img[:, y:y+h, x:x+w, :], (self.pool_size, self.pool_size))
+                rs = tf.image.resize(img[:, y:y + h, x:x + w, :], (self.pool_size, self.pool_size))
                 outputs.append(rs)
 
         final_output = K.concatenate(outputs, axis=0)

@@ -1,13 +1,12 @@
-import numpy as np
-import pdb
-import math
-from . import data_generators
 import copy
-import time
+import math
+
+import numpy as np
+
+from . import data_generators
 
 
 def calc_iou(R, img_data, C, class_mapping):
-
     bboxes = img_data['bboxes']
     (width, height) = (img_data['width'], img_data['height'])
     # get image dimensions for resizing
@@ -17,16 +16,16 @@ def calc_iou(R, img_data, C, class_mapping):
 
     for bbox_num, bbox in enumerate(bboxes):
         # get the GT box coordinates, and resize to account for image resizing
-        gta[bbox_num, 0] = int(round(bbox['x1'] * (resized_width / float(width))/C.rpn_stride))
-        gta[bbox_num, 1] = int(round(bbox['x2'] * (resized_width / float(width))/C.rpn_stride))
-        gta[bbox_num, 2] = int(round(bbox['y1'] * (resized_height / float(height))/C.rpn_stride))
-        gta[bbox_num, 3] = int(round(bbox['y2'] * (resized_height / float(height))/C.rpn_stride))
+        gta[bbox_num, 0] = int(round(bbox['x1'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 1] = int(round(bbox['x2'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 2] = int(round(bbox['y1'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 3] = int(round(bbox['y2'] * (resized_height / float(height)) / C.rpn_stride))
 
     x_roi = []
     y_class_num = []
     y_class_regr_coords = []
     y_class_regr_label = []
-    IoUs = [] # for debugging only
+    IoUs = []  # for debugging only
 
     for ix in range(R.shape[0]):
         (x1, y1, x2, y2) = R[ix, :]
@@ -38,13 +37,14 @@ def calc_iou(R, img_data, C, class_mapping):
         best_iou = 0.0
         best_bbox = -1
         for bbox_num in range(len(bboxes)):
-            curr_iou = data_generators.iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]], [x1, y1, x2, y2])
+            curr_iou = data_generators.iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]],
+                                           [x1, y1, x2, y2])
             if curr_iou > best_iou:
                 best_iou = curr_iou
                 best_bbox = bbox_num
 
         if best_iou < C.classifier_min_overlap:
-                continue
+            continue
         else:
             w = x2 - x1
             h = y2 - y1
@@ -79,8 +79,8 @@ def calc_iou(R, img_data, C, class_mapping):
         if cls_name != 'bg':
             label_pos = 4 * class_num
             sx, sy, sw, sh = C.classifier_regr_std
-            coords[label_pos:4+label_pos] = [sx*tx, sy*ty, sw*tw, sh*th]
-            labels[label_pos:4+label_pos] = [1, 1, 1, 1]
+            coords[label_pos:4 + label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
+            labels[label_pos:4 + label_pos] = [1, 1, 1, 1]
             y_class_regr_coords.append(copy.deepcopy(coords))
             y_class_regr_label.append(copy.deepcopy(labels))
         else:
@@ -92,21 +92,21 @@ def calc_iou(R, img_data, C, class_mapping):
 
     X = np.array(x_roi)
     Y1 = np.array(y_class_num)
-    Y2 = np.concatenate([np.array(y_class_regr_label),np.array(y_class_regr_coords)],axis=1)
+    Y2 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
 
     return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), IoUs
 
 
 def apply_regr(x, y, w, h, tx, ty, tw, th):
     try:
-        cx = x + w/2.
-        cy = y + h/2.
+        cx = x + w / 2.
+        cy = y + h / 2.
         cx1 = tx * w + cx
         cy1 = ty * h + cy
         w1 = math.exp(tw) * w
         h1 = math.exp(th) * h
-        x1 = cx1 - w1/2.
-        y1 = cy1 - h1/2.
+        x1 = cx1 - w1 / 2.
+        y1 = cy1 - h1 / 2.
         x1 = int(round(x1))
         y1 = int(round(y1))
         w1 = int(round(w1))
@@ -135,15 +135,15 @@ def apply_regr_np(X, T):
         tw = T[2, :, :]
         th = T[3, :, :]
 
-        cx = x + w/2.
-        cy = y + h/2.
+        cx = x + w / 2.
+        cy = y + h / 2.
         cx1 = tx * w + cx
         cy1 = ty * h + cy
 
         w1 = np.exp(tw.astype(np.float64)) * w
         h1 = np.exp(th.astype(np.float64)) * h
-        x1 = cx1 - w1/2.
-        y1 = cy1 - h1/2.
+        x1 = cx1 - w1 / 2.
+        y1 = cy1 - h1 / 2.
 
         x1 = np.round(x1)
         y1 = np.round(y1)
@@ -209,11 +209,11 @@ def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
         area_union = area[i] + area[idxs[:last]] - area_int
 
         # compute the ratio of overlap
-        overlap = area_int/(area_union + 1e-6)
+        overlap = area_int / (area_union + 1e-6)
 
         # delete all indexes from the index list that have
         idxs = np.delete(idxs, np.concatenate(([last],
-            np.where(overlap > overlap_thresh)[0])))
+                                               np.where(overlap > overlap_thresh)[0])))
 
         if len(pick) >= max_boxes:
             break
@@ -224,8 +224,7 @@ def non_max_suppression_fast(boxes, probs, overlap_thresh=0.9, max_boxes=300):
     return boxes, probs
 
 
-def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=300,overlap_thresh=0.9):
-
+def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=300, overlap_thresh=0.9):
     regr_layer = regr_layer / C.std_scaling
 
     anchor_sizes = C.anchor_box_scales
@@ -234,7 +233,7 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     assert rpn_layer.shape[0] == 1
 
     if dim_ordering == 'th':
-        (rows,cols) = rpn_layer.shape[2:]
+        (rows, cols) = rpn_layer.shape[2:]
 
     elif dim_ordering == 'tf':
         (rows, cols) = rpn_layer.shape[1:3]
@@ -248,18 +247,18 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
     for anchor_size in anchor_sizes:
         for anchor_ratio in anchor_ratios:
 
-            anchor_x = (anchor_size * anchor_ratio[0])/C.rpn_stride
-            anchor_y = (anchor_size * anchor_ratio[1])/C.rpn_stride
+            anchor_x = (anchor_size * anchor_ratio[0]) / C.rpn_stride
+            anchor_y = (anchor_size * anchor_ratio[1]) / C.rpn_stride
             if dim_ordering == 'th':
                 regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :]
             else:
                 regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4]
                 regr = np.transpose(regr, (2, 0, 1))
 
-            X, Y = np.meshgrid(np.arange(cols),np. arange(rows))
+            X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
 
-            A[0, :, :, curr_layer] = X - anchor_x/2
-            A[1, :, :, curr_layer] = Y - anchor_y/2
+            A[0, :, :, curr_layer] = X - anchor_x / 2
+            A[1, :, :, curr_layer] = Y - anchor_y / 2
             A[2, :, :, curr_layer] = anchor_x
             A[3, :, :, curr_layer] = anchor_y
 
@@ -273,12 +272,12 @@ def rpn_to_roi(rpn_layer, regr_layer, C, dim_ordering, use_regr=True, max_boxes=
 
             A[0, :, :, curr_layer] = np.maximum(0, A[0, :, :, curr_layer])
             A[1, :, :, curr_layer] = np.maximum(0, A[1, :, :, curr_layer])
-            A[2, :, :, curr_layer] = np.minimum(cols-1, A[2, :, :, curr_layer])
-            A[3, :, :, curr_layer] = np.minimum(rows-1, A[3, :, :, curr_layer])
+            A[2, :, :, curr_layer] = np.minimum(cols - 1, A[2, :, :, curr_layer])
+            A[3, :, :, curr_layer] = np.minimum(rows - 1, A[3, :, :, curr_layer])
 
             curr_layer += 1
 
-    all_boxes = np.reshape(A.transpose((0, 3, 1,2)), (4, -1)).transpose((1, 0))
+    all_boxes = np.reshape(A.transpose((0, 3, 1, 2)), (4, -1)).transpose((1, 0))
     all_probs = rpn_layer.transpose((0, 3, 1, 2)).reshape((-1))
 
     x1 = all_boxes[:, 0]

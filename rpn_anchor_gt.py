@@ -1,7 +1,8 @@
-import numpy as np
-import cv2
-import random
 import copy
+import random
+
+import cv2
+import numpy as np
 
 
 def union(au, bu, area_intersection):
@@ -18,7 +19,7 @@ def intersection(ai, bi):
     h = min(ai[3], bi[3]) - y
     if w < 0 or h < 0:
         return 0
-    return w*h
+    return w * h
 
 
 # Intersection of Union
@@ -32,6 +33,7 @@ def iou(a, b):
     area_u = union(a, b, area_i)
 
     return float(area_i) / float(area_u + 1e-6)
+
 
 # image resize
 def get_new_img_size(width, height, img_min_side=600):
@@ -120,7 +122,8 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
                     for bbox_num in range(num_bboxes):
 
                         # get IOU of the current GT box and the current anchor box
-                        curr_iou = iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]], [x1_anc, y1_anc, x2_anc, y2_anc])
+                        curr_iou = iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]],
+                                       [x1_anc, y1_anc, x2_anc, y2_anc])
                         if curr_iou > 0.7:
                             print(curr_iou)
                         # calculate the regression targets if they will be needed
@@ -128,8 +131,8 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
                             # 根据两个顶点，求box的中心点
                             cx = (gta[bbox_num, 0] + gta[bbox_num, 1]) / 2.0
                             cy = (gta[bbox_num, 2] + gta[bbox_num, 3]) / 2.0
-                            cxa = (x1_anc + x2_anc)/2.0
-                            cya = (y1_anc + y2_anc)/2.0
+                            cxa = (x1_anc + x2_anc) / 2.0
+                            cya = (y1_anc + y2_anc) / 2.0
                             # 计算偏移量，1. 中心点的偏移分别除以anchor的长和宽 2 ground的长宽分别和anchor的长宽比，并取对数
                             tx = (cx - cxa) / (x2_anc - x1_anc)
                             ty = (cy - cya) / (y2_anc - y1_anc)
@@ -142,8 +145,8 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
                             if curr_iou > best_iou_for_bbox[bbox_num]:
                                 best_anchor_for_bbox[bbox_num] = [jy, ix, anchor_ratio_idx, anchor_size_idx]
                                 best_iou_for_bbox[bbox_num] = curr_iou
-                                best_x_for_bbox[bbox_num,:] = [x1_anc, x2_anc, y1_anc, y2_anc]
-                                best_dx_for_bbox[bbox_num,:] = [tx, ty, tw, th]
+                                best_x_for_bbox[bbox_num, :] = [x1_anc, x2_anc, y1_anc, y2_anc]
+                                best_dx_for_bbox[bbox_num, :] = [tx, ty, tw, th]
 
                             # we set the anchor to positive if the IOU is >0.7 (it does not matter if there was another better box, it just indicates overlap)
                             if curr_iou > rpn_max_overlap:
@@ -171,7 +174,7 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
                         y_is_box_valid[jy, ix, anchor_ratio_idx + n_anchratios * anchor_size_idx] = 1
                         y_rpn_overlap[jy, ix, anchor_ratio_idx + n_anchratios * anchor_size_idx] = 1
                         start = 4 * (anchor_ratio_idx + n_anchratios * anchor_size_idx)
-                        y_rpn_regr[jy, ix, start:start+4] = best_regr
+                        y_rpn_regr[jy, ix, start:start + 4] = best_regr
 
     # we ensure that every bbox has at least one positive RPN region
 
@@ -181,14 +184,16 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
             if best_anchor_for_bbox[idx, 0] == -1:
                 continue
             y_is_box_valid[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios *
-                best_anchor_for_bbox[idx,3]] = 1
+                best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], best_anchor_for_bbox[
+                    idx, 2] + n_anchratios *
+                best_anchor_for_bbox[idx, 3]] = 1
             y_rpn_overlap[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], best_anchor_for_bbox[idx,2] + n_anchratios *
-                best_anchor_for_bbox[idx,3]] = 1
-            start = 4 * (best_anchor_for_bbox[idx,2] + n_anchratios * best_anchor_for_bbox[idx,3])
+                best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], best_anchor_for_bbox[
+                    idx, 2] + n_anchratios *
+                best_anchor_for_bbox[idx, 3]] = 1
+            start = 4 * (best_anchor_for_bbox[idx, 2] + n_anchratios * best_anchor_for_bbox[idx, 3])
             y_rpn_regr[
-                best_anchor_for_bbox[idx,0], best_anchor_for_bbox[idx,1], start:start+4] = best_dx_for_bbox[idx, :]
+            best_anchor_for_bbox[idx, 0], best_anchor_for_bbox[idx, 1], start:start + 4] = best_dx_for_bbox[idx, :]
 
     y_rpn_overlap = np.transpose(y_rpn_overlap, (2, 0, 1))
     y_rpn_overlap = np.expand_dims(y_rpn_overlap, axis=0)
@@ -208,10 +213,10 @@ def calc_rpn(img_data, width, height, resized_width, resized_height, img_length_
     # regions. We also limit it to 256 regions.
     num_regions = 256
 
-    if len(pos_locs[0]) > num_regions/2:
-        val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions/2)
+    if len(pos_locs[0]) > num_regions / 2:
+        val_locs = random.sample(range(len(pos_locs[0])), len(pos_locs[0]) - num_regions / 2)
         y_is_box_valid[0, pos_locs[0][val_locs], pos_locs[1][val_locs], pos_locs[2][val_locs]] = 0
-        num_pos = num_regions/2
+        num_pos = num_regions / 2
 
     if len(neg_locs[0]) + num_pos > num_regions:
         val_locs = random.sample(range(len(neg_locs[0])), len(neg_locs[0]) - num_pos)
@@ -235,8 +240,8 @@ def read_img(img_data):
     img_data_aug['height'] = img.shape[0]
     return img_data_aug, img
 
-def rpn_anchor_gt(all_img_data, img_length_calc_function):
 
+def rpn_anchor_gt(all_img_data, img_length_calc_function):
     # read in image, and optionally add augmentation
     img_channel_mean = [103.939, 116.779, 123.68]
     img_scaling_factor = 1.0
@@ -301,15 +306,17 @@ def get_img_output_length(width, height):
 
 
 img1 = {'filepath': '/Users/fancyxun/code/data/VOCdevkit/VOC2012/JPEGImages/2008_006482.jpg',
-     'width': 500, 'height': 411, 'bboxes': [{'class': 'chair', 'x1': 155, 'x2': 233, 'y1': 321, 'y2': 411, 'difficult': True},
-                                             {'class': 'diningtable', 'x1': 1, 'x2': 201, 'y1': 341, 'y2': 411, 'difficult': False}],
-     'image_id': 2, 'imageset': 'train'}
+        'width': 500, 'height': 411,
+        'bboxes': [{'class': 'chair', 'x1': 155, 'x2': 233, 'y1': 321, 'y2': 411, 'difficult': True},
+                   {'class': 'diningtable', 'x1': 1, 'x2': 201, 'y1': 341, 'y2': 411, 'difficult': False}],
+        'image_id': 2, 'imageset': 'train'}
 img2 = {'filepath': '/Users/fancyxun/code/data/VOCdevkit/VOC2012/JPEGImages/2010_005054.jpg',
-        'width': 500, 'height': 111, 'bboxes': [{'class': 'tvmonitor', 'x1': 86, 'x2': 121, 'y1': 34, 'y2': 70, 'difficult': False},
-                                                {'class': 'sofa', 'x1': 318, 'x2': 427, 'y1': 42, 'y2': 111, 'difficult': False},
-                                                {'class': 'sofa', 'x1': 1, 'x2': 98, 'y1': 70, 'y2': 111, 'difficult': False}],
+        'width': 500, 'height': 111,
+        'bboxes': [{'class': 'tvmonitor', 'x1': 86, 'x2': 121, 'y1': 34, 'y2': 70, 'difficult': False},
+                   {'class': 'sofa', 'x1': 318, 'x2': 427, 'y1': 42, 'y2': 111, 'difficult': False},
+                   {'class': 'sofa', 'x1': 1, 'x2': 98, 'y1': 70, 'y2': 111, 'difficult': False}],
         'image_id': 3, 'imageset': 'train'}
 
 train_imgs = [img1, img2]
 X, Y, img_data = rpn_anchor_gt(train_imgs, get_img_output_length)
-
+print(Y[0].shape, Y[1].shape)

@@ -14,16 +14,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from keras.layers import Input, add, Dense, Activation, Flatten, Conv2D, MaxPooling2D, SeparableConv2D, BatchNormalization, GlobalAveragePooling2D, AveragePooling2D, TimeDistributed
-
 from keras import backend as K
+from keras.layers import Input, add, Dense, Activation, Flatten, Conv2D, MaxPooling2D, SeparableConv2D, \
+    BatchNormalization, GlobalAveragePooling2D, TimeDistributed
 
 from keras_frcnn.RoiPoolingConv import RoiPoolingConv
-from keras_frcnn.FixedBatchNormalization import FixedBatchNormalization
+import tensorflow as tf
 
 
 def get_weight_path():
-    if K.image_dim_ordering() == 'th':
+    if tf.keras.backend.image_data_format() == 'channels_first':
         return 'xception_weights_tf_dim_ordering_tf_kernels_notop.h5'
     else:
         return 'xception_weights_tf_dim_ordering_tf_kernels.h5'
@@ -45,9 +45,8 @@ def get_img_output_length(width, height):
 
 
 def nn_base(input_tensor=None, trainable=False):
-
     # Determine proper input shape
-    if K.image_dim_ordering() == 'th':
+    if tf.keras.backend.image_data_format() == 'channels_first':
         input_shape = (3, None, None)
     else:
         input_shape = (None, None, 3)
@@ -60,7 +59,7 @@ def nn_base(input_tensor=None, trainable=False):
         else:
             img_input = input_tensor
 
-    if K.image_dim_ordering() == 'tf':
+    if tf.keras.backend.image_data_format() == 'channels_last':
         bn_axis = 3
     else:
         bn_axis = 1
@@ -197,7 +196,6 @@ def nn_base(input_tensor=None, trainable=False):
 
 
 def classifier_layers(x, input_shape, trainable=False):
-
     # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
     # (hence a smaller stride in the region that follows the ROI pool)
     x = TimeDistributed(SeparableConv2D(1536, (3, 3),
@@ -220,8 +218,8 @@ def classifier_layers(x, input_shape, trainable=False):
 
 
 def rpn(base_layers, num_anchors):
-
-    x = Conv2D(1024, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(base_layers)
+    x = Conv2D(1024, (3, 3), padding='same', activation='relu', kernel_initializer='normal', name='rpn_conv1')(
+        base_layers)
 
     x_class = Conv2D(num_anchors, (1, 1), activation='sigmoid', kernel_initializer='uniform', name='rpn_out_class')(x)
     x_regr = Conv2D(num_anchors * 4, (1, 1), activation='linear', kernel_initializer='zero', name='rpn_out_regress')(x)
@@ -230,7 +228,6 @@ def rpn(base_layers, num_anchors):
 
 
 def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False):
-
     # compile times on theano tend to be very high, so we use smaller ROI pooling regions to workaround
 
     if K.backend() == 'tensorflow':
@@ -245,8 +242,9 @@ def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False
 
     out = TimeDistributed(Flatten())(out)
 
-    out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'), name='dense_class_{}'.format(nb_classes))(out)
+    out_class = TimeDistributed(Dense(nb_classes, activation='softmax', kernel_initializer='zero'),
+                                name='dense_class_{}'.format(nb_classes))(out)
     # note: no regression target for bg class
-    out_regr = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'), name='dense_regress_{}'.format(nb_classes))(out)
+    out_regr = TimeDistributed(Dense(4 * (nb_classes - 1), activation='linear', kernel_initializer='zero'),
+                               name='dense_regress_{}'.format(nb_classes))(out)
     return [out_class, out_regr]
-

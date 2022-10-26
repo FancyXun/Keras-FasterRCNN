@@ -1,12 +1,11 @@
 import os
-import sys
 
-# from keras.applications import *
-from inception_resnet_v2 import InceptionResnetV2_model
 from keras import backend as k
 from keras.layers import *
 from keras.models import Model
-from keras.optimizers import *
+
+# from keras.applications import *
+from inception_resnet_v2 import InceptionResnetV2_model
 
 # hyper parameters for model
 nb_classes = 1  # number of classes
